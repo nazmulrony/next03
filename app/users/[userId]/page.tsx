@@ -1,9 +1,9 @@
 import getUser from '@/lib/getUser';
 import getUserPosts from '@/lib/getUserPosts';
+import UserPosts from './components/UserPosts';
 import { Suspense } from 'react';
-import UserPosts from './components/userPosts';
-import { Http2ServerRequest } from 'http2';
-import { Metadata } from 'next';
+import type { Metadata } from 'next';
+import getAllUsers from '@/lib/getAllUsers';
 
 type Params = {
     params: {
@@ -18,25 +18,32 @@ export async function generateMetadata({
     const user = await userData;
     return {
         title: user.name,
-        description: `This is the page of ${user.name}`,
+        description: `This is the post page of ${user.name}`,
     };
 }
 
-export default async function UserPage({ params: { userId } }: Params) {
+export default async function page({ params: { userId } }: Params) {
     const userData: Promise<User> = getUser(userId);
-    const userPostsData: Promise<Post[]> = getUserPosts(userId);
+    const userPostData: Promise<Post[]> = getUserPosts(userId);
 
-    //parallel data fetching
-    // const [user, userPosts] = await Promise.all([userData, userPostsData]);
+    //this is to way to parallel data fetching
+    // const [user, userPost] = await Promise.all([userData, userPostData]);
 
     const user = await userData;
     return (
-        <>
-            <h2>{user.name}</h2>
-            <br />
+        <div>
+            <h1>{user.name}</h1>
             <Suspense fallback={<h2>Loading...</h2>}>
-                <UserPosts promise={userPostsData} />
+                <UserPosts promise={userPostData} />
             </Suspense>
-        </>
+        </div>
     );
+}
+
+export async function generateStaticParams() {
+    const usersData: Promise<User[]> = getAllUsers();
+    const users = await usersData;
+    return users.map((user) => ({
+        userId: user.id.toString(),
+    }));
 }
